@@ -11,6 +11,7 @@
 	{
 		"label": "test",
 		"command": "make test",
+		"hide": "on_success"
 	},
 	{
 		"label": "run",

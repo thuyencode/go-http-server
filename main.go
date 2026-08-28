@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,25 +15,50 @@ func main() {
 
 	mux.HandleFunc("/", HandleRootEndpoint)
 	mux.HandleFunc("/goodbye", HandleGoodbyeEndpoint)
+	mux.HandleFunc("/hello", HandleHelloEndpoint)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), mux))
 	slog.Info("Listening to", "port", PORT)
 }
 
-func HandleRootEndpoint(w http.ResponseWriter, _ *http.Request) {
-	_, err := w.Write([]byte("Hello World!"))
+func HandleRootEndpoint(res http.ResponseWriter, req *http.Request) {
+	_, err := res.Write([]byte("Welcome!"))
 
 	if err != nil {
-		slog.Error("error writing response:", "err", err)
+		slog.Error("error writing response body:", "err", err)
 		return
 	}
 }
 
-func HandleGoodbyeEndpoint(w http.ResponseWriter, _ *http.Request) {
-	_, err := w.Write([]byte("Goodbye!"))
+func HandleGoodbyeEndpoint(res http.ResponseWriter, _ *http.Request) {
+	_, err := res.Write([]byte("Goodbye!"))
 
 	if err != nil {
-		slog.Error("error writing response:", "err", err)
+		slog.Error("error writing response body:", "err", err)
+		return
+	}
+}
+
+func HandleHelloEndpoint(res http.ResponseWriter, req *http.Request) {
+	params := req.URL.Query()
+	nameList, ok := params["name"]
+
+	if !ok {
+		http.Error(res, "You need to provide a search query named \"name\"", http.StatusBadRequest)
+		return
+	}
+
+	name := nameList[0]
+	var output bytes.Buffer
+
+	output.WriteString("Hello, ")
+	output.WriteString(name)
+	output.WriteString("!")
+
+	_, err := res.Write(output.Bytes())
+
+	if err != nil {
+		slog.Error("error writing response body:", "err", err)
 		return
 	}
 }
