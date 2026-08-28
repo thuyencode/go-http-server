@@ -6,12 +6,12 @@
 	{
 		"label": "build",
 		"command": "make build",
+		"hide": "on_success",
 		"save": "all"
 	},
 	{
 		"label": "test",
 		"command": "make test",
-		"hide": "on_success"
 	},
 	{
 		"label": "run",
