@@ -1,0 +1,36 @@
+[
+	{
+		"label": "dev",
+		"command": "make dev",
+	},
+	{
+		"label": "build",
+		"command": "make build",
+		"save": "all"
+	},
+	{
+		"label": "test",
+		"command": "make test",
+	},
+	{
+		"label": "run",
+		"command": "make run",
+	},
+	{
+		"label": "fmt",
+		"command": "make fmt",
+		"hide": "on_success",
+		"save": "all"
+	},
+	{
+		"label": "lint",
+		"command": "make lint",
+		"hide": "on_success",
+		"save": "all"
+	},
+	{
+		"label": "clean",
+		"command": "make clean",
+		"hide": "on_success"
+	}
+]
