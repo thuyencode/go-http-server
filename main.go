@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"go-http-server/internal/util"
 	"log"
 	"log/slog"
 	"net/http"
@@ -13,9 +13,11 @@ const PORT = 3000
 func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", HandleRootEndpoint)
+	mux.HandleFunc("/{$}", HandleRootEndpoint)
 	mux.HandleFunc("/goodbye", HandleGoodbyeEndpoint)
 	mux.HandleFunc("/hello", HandleHelloEndpoint)
+	mux.HandleFunc("/param/{name}", HandleParamEndpoint)
+	mux.HandleFunc("/header", HandleHeaderEndpoint)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), mux))
 	slog.Info("Listening to", "port", PORT)
@@ -40,8 +42,8 @@ func HandleGoodbyeEndpoint(res http.ResponseWriter, _ *http.Request) {
 }
 
 func HandleHelloEndpoint(res http.ResponseWriter, req *http.Request) {
-	params := req.URL.Query()
-	nameList, ok := params["name"]
+	query := req.URL.Query()
+	nameList, ok := query["name"]
 
 	if !ok {
 		http.Error(res, "You need to provide a search query named \"name\"", http.StatusBadRequest)
@@ -49,16 +51,24 @@ func HandleHelloEndpoint(res http.ResponseWriter, req *http.Request) {
 	}
 
 	name := nameList[0]
-	var output bytes.Buffer
 
-	output.WriteString("Hello, ")
-	output.WriteString(name)
-	output.WriteString("!")
+	util.WriteResponseBody(res, "Hello, ", name, "!")
 
-	_, err := res.Write(output.Bytes())
+}
 
-	if err != nil {
-		slog.Error("error writing response body:", "err", err)
+func HandleParamEndpoint(res http.ResponseWriter, req *http.Request) {
+	name := req.PathValue("name")
+
+	util.WriteResponseBody(res, "Hello, ", name, "!")
+}
+
+func HandleHeaderEndpoint(res http.ResponseWriter, req *http.Request) {
+	name := req.Header.Get("name")
+
+	if name == "" {
+		http.Error(res, "You must set a value for \"name\" at the request header", http.StatusBadRequest)
 		return
 	}
+
+	util.WriteResponseBody(res, "Hello, ", name, "!")
 }

@@ -8,11 +8,11 @@ endif
 dev:
 	air
 run:
-	go run main.go
+	go run .
 build:
 	go build -o $(BINARY_NAME)
 test:
-	go test -cover ./...
+	go test -cover -v ./...
 fmt:
 	go fmt ./...
 lint:
