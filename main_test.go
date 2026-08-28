@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func Test_HandleRootEndpoint(t *testing.T) {
+func TestUnit_HandleRootEndpoint(t *testing.T) {
 	res := httptest.NewRecorder()
 
 	HandleRootEndpoint(res, nil)
@@ -24,7 +24,7 @@ func Test_HandleRootEndpoint(t *testing.T) {
 	}
 }
 
-func Test_HandleGoodbyeEndpoint(t *testing.T) {
+func TestUnit_HandleGoodbyeEndpoint(t *testing.T) {
 	res := httptest.NewRecorder()
 
 	HandleGoodbyeEndpoint(res, nil)
@@ -40,7 +40,7 @@ func Test_HandleGoodbyeEndpoint(t *testing.T) {
 	}
 }
 
-func Test_HandleHelloEndpoint(t *testing.T) {
+func TestUnit_HandleHelloEndpoint(t *testing.T) {
 	name := "Gopher"
 	res := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/hello?name=%s", name), nil)
@@ -58,7 +58,7 @@ func Test_HandleHelloEndpoint(t *testing.T) {
 	}
 }
 
-func Test_HandleHelloEndpoint_NoQuery(t *testing.T) {
+func TestUnit_HandleHelloEndpoint_NoQuery(t *testing.T) {
 	res := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/hello", nil)
 
