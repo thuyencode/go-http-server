@@ -1,0 +1,8 @@
+#!/bin/sh
+
+make fmt lint test
+
+# Exclude deleted files from commit
+# which I doubt will ever happen here
+# Source: https://github.com/CompSciLauren/awesome-git-hooks/blob/master/pre-commit-hooks/format-code.hook
+git diff --name-only --cached --diff-filter=d | xargs -l git add

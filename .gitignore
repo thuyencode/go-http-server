@@ -21,7 +21,7 @@
 !go.sum
 !go.mod
 
-!assets/**/*
+!scripts/**/*
 
 !README.md
 !LICENSE
