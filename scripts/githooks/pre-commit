@@ -1,6 +1,10 @@
 #!/bin/sh
 
-make fmt lint test
+go_files=$(git diff --name-only --cached | grep *.go)
+
+if [ -n "$go_files" ]; then
+    make fmt lint test
+fi
 
 # Exclude deleted files from commit
 # which I doubt will ever happen here
