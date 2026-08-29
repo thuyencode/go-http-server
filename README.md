@@ -2,6 +2,20 @@
 
 I was coding along the [Go HTTP Servers](https://www.youtube.com/playlist?list=PLlv5lnjOHQo7m2w-KjtTZq10ZNVfNHHdP) playlist to learn Go, obviously.
 
+## Prerequisite
+
+Some targets in [`Makefile`](./Makefile) rely one [`air`](https://github.com/air-verse/air) and [`golangci-lint`](https://golangci-lint.run/docs/welcome/install/local/). Make sure to install them if you intend to use `Makefile`.
+
+If you want to use my git hooks, copy them into your local `.git/hooks`.
+
+```sh
+cp script/githooks/* .git/hooks
+```
+
+Note: You will need the cli tools I mentioned above.
+
+## Wiki
+
 The current HTTP endpoints:
 
 - `/`:  Return `"Welcome!"` on happy path

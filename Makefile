@@ -1,4 +1,4 @@
-BINARY_NAME=live-server
+BINARY_NAME=http-server
 ENV_FILE=.env
 
 ifneq (,$(wildcard $(ENV_FILE)))
@@ -10,7 +10,7 @@ dev:
 run:
 	go run .
 build:
-	go build -o $(BINARY_NAME)
+	GOAMD64=$(GOAMD64) CGO_ENABLED=${CGO_ENABLED} go build -o $(BINARY_NAME)
 test:
 	go test -cover ./...
 fmt:
