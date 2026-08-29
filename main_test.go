@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,12 +16,12 @@ func TestUnit_HandleRootEndpoint(t *testing.T) {
 
 	expectedCode := http.StatusOK
 	if res.Code != expectedCode {
-		t.Errorf("bad response code, expected %d, got %d", expectedCode, res.Code)
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
 	}
 
 	expectedBody := []byte("Welcome!")
 	if !bytes.Equal(res.Body.Bytes(), expectedBody) {
-		t.Errorf("bad response body, expected \"%s\", got \"%s\"", expectedBody, res.Body.Bytes())
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedBody, res.Body.Bytes())
 	}
 }
 
@@ -31,12 +32,12 @@ func TestUnit_HandleGoodbyeEndpoint(t *testing.T) {
 
 	expectedCode := http.StatusOK
 	if res.Code != expectedCode {
-		t.Errorf("bad response code, expected %d, got %d", expectedCode, res.Code)
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
 	}
 
 	expectedBody := []byte("Goodbye!")
 	if !bytes.Equal(res.Body.Bytes(), expectedBody) {
-		t.Errorf("bad response body, expected \"%s\", got \"%s\"", expectedBody, res.Body.Bytes())
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedBody, res.Body.Bytes())
 	}
 }
 
@@ -49,12 +50,12 @@ func TestUnit_HandleHelloEndpoint(t *testing.T) {
 
 	expectedCode := http.StatusOK
 	if res.Code != expectedCode {
-		t.Errorf("bad response code, expected %d, got %d", expectedCode, res.Code)
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
 	}
 
 	expectedBody := fmt.Appendf(nil, "Hello, %s!", name)
 	if !bytes.Equal(res.Body.Bytes(), expectedBody) {
-		t.Errorf("bad response body, expected \"%s\", got \"%s\"", expectedBody, res.Body.Bytes())
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedBody, res.Body.Bytes())
 	}
 }
 
@@ -66,12 +67,12 @@ func TestUnit_HandleHelloEndpoint_NoQuery(t *testing.T) {
 
 	expectedCode := http.StatusBadRequest
 	if res.Code != expectedCode {
-		t.Errorf("bad response code, expected %d, got %d", expectedCode, res.Code)
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
 	}
 
 	expectedBody := []byte("You need to provide a search query named \"name\"\n")
 	if !bytes.Equal(res.Body.Bytes(), expectedBody) {
-		t.Errorf("bad response body, expected \"%s\", got \"%s\"", expectedBody, res.Body.Bytes())
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedBody, res.Body.Bytes())
 	}
 }
 
@@ -85,12 +86,12 @@ func TestUnit_HandleHeaderEndpoint(t *testing.T) {
 
 	expectedCode := http.StatusOK
 	if res.Code != expectedCode {
-		t.Errorf("bad response code, expected %d, got %d", expectedCode, res.Code)
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
 	}
 
 	expectedBody := fmt.Appendf(nil, "Hello, %s!", name)
 	if !bytes.Equal(res.Body.Bytes(), expectedBody) {
-		t.Errorf("bad response body, expected \"%s\", got \"%s\"", expectedBody, res.Body.Bytes())
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedBody, res.Body.Bytes())
 	}
 }
 
@@ -102,11 +103,76 @@ func TestUnit_HandleHeaderEndpoint_NoHeader(t *testing.T) {
 
 	expectedCode := http.StatusBadRequest
 	if res.Code != expectedCode {
-		t.Errorf("bad response code, expected %d, got %d", expectedCode, res.Code)
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
 	}
 
 	expectedBody := []byte("You must set a value for \"name\" at the request header\n")
 	if !bytes.Equal(res.Body.Bytes(), expectedBody) {
-		t.Errorf("bad response body, expected \"%s\", got \"%s\"", expectedBody, res.Body.Bytes())
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedBody, res.Body.Bytes())
+	}
+}
+
+func TestUnit_HandleJSONEndpoint(t *testing.T) {
+	requestBody := RequestBody{Name: "Gopher"}
+	marshalledRequestBody, err := json.Marshal(requestBody)
+
+	if err != nil {
+		t.Fatalf("error marshalling test data: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/json", bytes.NewBuffer(marshalledRequestBody))
+	res := httptest.NewRecorder()
+
+	HandleJSONEndpoint(res, req)
+
+	expectedCode := http.StatusOK
+	if res.Code != expectedCode {
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
+	}
+
+	expectedResponseBody := []byte("Hello, Gopher!")
+	if !bytes.Equal(res.Body.Bytes(), expectedResponseBody) {
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedResponseBody, res.Body.Bytes())
+	}
+}
+
+func TestUnit_HandleJSONEndpoint_EmptyRequestBody(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/json", nil)
+	res := httptest.NewRecorder()
+
+	HandleJSONEndpoint(res, req)
+
+	expectedCode := http.StatusBadRequest
+	if res.Code != expectedCode {
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
+	}
+
+	expectedResponseBody := []byte("error deserialising request body\n")
+	if !bytes.Equal(res.Body.Bytes(), expectedResponseBody) {
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedResponseBody, res.Body.Bytes())
+	}
+}
+
+func TestUnit_HandleJSONEndpoint_EmptyName(t *testing.T) {
+	requestBody := RequestBody{Name: ""}
+	marshalledRequestBody, err := json.Marshal(requestBody)
+
+	if err != nil {
+		t.Fatalf("error marshalling test data: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/json", bytes.NewBuffer(marshalledRequestBody))
+	res := httptest.NewRecorder()
+
+	HandleJSONEndpoint(res, req)
+
+	expectedCode := http.StatusBadRequest
+	if res.Code != expectedCode {
+		t.Errorf(`bad response code, expected %d, got %d`, expectedCode, res.Code)
+	}
+
+	expectedResponseBody := []byte("You must not leave the \"name\" field empty\n")
+	if !bytes.Equal(res.Body.Bytes(), expectedResponseBody) {
+		t.Errorf(`bad response body, expected "%s", got "%s"`, expectedResponseBody, res.Body.Bytes())
 	}
 }
