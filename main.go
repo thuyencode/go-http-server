@@ -26,8 +26,8 @@ func main() {
 	mux.HandleFunc("/header", HandleHeaderEndpoint)
 	mux.HandleFunc("/json", HandleJSONEndpoint)
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), mux))
 	slog.Info("Listening to", "port", PORT)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), mux))
 }
 
 func HandleRootEndpoint(res http.ResponseWriter, req *http.Request) {
