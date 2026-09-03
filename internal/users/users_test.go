@@ -79,7 +79,7 @@ func TestUnit_AddUser_EmptyName(t *testing.T) {
 		t.Fatal("bad return, expected an error")
 	}
 
-	expectedErr := EmptyNamesError
+	expectedErr := ErrEmptyNames
 
 	if !errors.Is(actualErr, expectedErr) {
 		t.Errorf(`bad error, expected "%v", got "%v"`, expectedErr, actualErr)
@@ -109,7 +109,7 @@ func TestUnit_AddUser_DuplicatedName(t *testing.T) {
 	}
 
 	err = testManager.AddUser(firstName, lastName, email.String())
-	expectedErr := DuplicatedNameError
+	expectedErr := ErrDuplicatedName
 
 	if err == nil {
 		t.Fatal("bad return, expected an error")
@@ -165,19 +165,19 @@ func TestUnit_GetUserByName(t *testing.T) {
 			firstName:   "Go",
 			lastName:    "Gopher",
 			expected:    nil,
-			expectedErr: NoUserFoundError,
+			expectedErr: ErrNoUserFound,
 		},
 		"partial match lookup": {
 			firstName:   "foo",
 			lastName:    "foo",
 			expected:    nil,
-			expectedErr: NoUserFoundError,
+			expectedErr: ErrNoUserFound,
 		},
 		"empty names": {
 			firstName:   "",
 			lastName:    "",
 			expected:    nil,
-			expectedErr: NoUserFoundError,
+			expectedErr: ErrNoUserFound,
 		},
 	}
 

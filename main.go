@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go-http-server/internal/users"
 	"go-http-server/internal/util"
 	"io"
 	"log"
@@ -12,11 +14,20 @@ import (
 
 const PORT = 3000
 
-type RequestBody struct {
-	Name string
+type UserData struct {
+	FirstName string
+	LastName  string
+	Email     string
+}
+
+type Server struct {
+	userManager *users.Manager
 }
 
 func main() {
+	manager := users.NewManager()
+	s := Server{manager}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/{$}", HandleRootEndpoint)
@@ -24,7 +35,9 @@ func main() {
 	mux.HandleFunc("/hello", HandleHelloEndpoint)
 	mux.HandleFunc("/param/{name}", HandleParamEndpoint)
 	mux.HandleFunc("/header", HandleHeaderEndpoint)
-	mux.HandleFunc("/json", HandleJSONEndpoint)
+	mux.HandleFunc("POST /json", HandleJSONEndpoint)
+	mux.HandleFunc("POST /user", s.HandleUserEndpointPOST)
+	mux.HandleFunc("GET /user", s.HandleUserEndpointGET)
 
 	slog.Info("Listening to", "port", PORT)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), mux))
@@ -87,8 +100,8 @@ func HandleJSONEndpoint(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var unmarshalledRequestBody RequestBody
-	err = json.Unmarshal(bodyInBytes, &unmarshalledRequestBody)
+	var unmarshalledReqBody UserData
+	err = json.Unmarshal(bodyInBytes, &unmarshalledReqBody)
 
 	if err != nil {
 		slog.Error("error deserialising request body:", "err", err)
@@ -96,10 +109,89 @@ func HandleJSONEndpoint(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if unmarshalledRequestBody.Name == "" {
+	if unmarshalledReqBody.FirstName == "" {
 		http.Error(res, `You must not leave the "name" field empty`, http.StatusBadRequest)
 		return
 	}
 
-	util.WriteResponseBody(res, "Hello, ", unmarshalledRequestBody.Name, "!")
+	util.WriteResponseBody(res, "Hello, ", unmarshalledReqBody.FirstName, "!")
+}
+
+func (s *Server) HandleUserEndpointPOST(res http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		http.Error(res, fmt.Sprintf(`unsupported Content-Type header: %q`, contentType), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	reqBody := http.MaxBytesReader(res, req.Body, 100000) // 100 KB
+
+	decoder := json.NewDecoder(reqBody)
+	decoder.DisallowUnknownFields()
+
+	var u UserData
+
+	err := decoder.Decode(&u)
+	if err != nil {
+		slog.Error("error decoding request body to /user", "err", err)
+		http.Error(res, "bad request body", http.StatusBadRequest)
+		return
+	}
+
+	err = s.userManager.AddUser(u.FirstName, u.LastName, u.Email)
+	if err != nil {
+		http.Error(res, fmt.Sprintf("error adding user: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusCreated)
+}
+
+func (s *Server) HandleUserEndpointGET(res http.ResponseWriter, req *http.Request) {
+	q := req.URL.Query()
+	firstName, lastName := q.Get("firstName"), q.Get("lastName")
+
+	if firstName == "" || lastName == "" {
+		http.Error(res, `Netheir "firstName" or "lastName" search query can be empty`, http.StatusBadRequest)
+		return
+	}
+
+	result, err := s.userManager.GetUserByName(firstName, lastName)
+
+	if err != nil {
+		if errors.Is(err, users.ErrNoUserFound) {
+			http.Error(res, "No user found", http.StatusNotFound)
+		} else {
+			slog.Error("error retrieving user", "err", err)
+			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	converted := convertUserToUserData(result)
+	marshalled, err := json.Marshal(converted)
+
+	if err != nil {
+		slog.Error("error marshalling user data", "err", err)
+		http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	_, err = res.Write(marshalled)
+
+	if err != nil {
+		slog.Error("error writing response body", "err", err)
+		http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+}
+
+func convertUserToUserData(u *users.User) *UserData {
+	return &UserData{
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Email:     u.Email.Address,
+	}
 }

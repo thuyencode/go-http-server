@@ -6,9 +6,9 @@ import (
 	"net/mail"
 )
 
-var NoUserFoundError = errors.New("no such user found")
-var EmptyNamesError = errors.New("you cannot leave first name or last name empty")
-var DuplicatedNameError = errors.New("duplicated name")
+var ErrNoUserFound = errors.New("no such user found")
+var ErrEmptyNames = errors.New("you cannot leave first name or last name empty")
+var ErrDuplicatedName = errors.New("duplicated name")
 
 type User struct {
 	FirstName string
@@ -34,13 +34,17 @@ func (m *Manager) AddUser(firstName, lastName, email string) error {
 	}
 
 	if firstName == "" || lastName == "" {
-		return EmptyNamesError
+		return ErrEmptyNames
 	}
 
-	existedUser, _ := m.GetUserByName(firstName, lastName)
+	existedUser, err := m.GetUserByName(firstName, lastName)
+
+	if err != nil && !errors.Is(err, ErrNoUserFound) {
+		return fmt.Errorf("error checking if user is already existed: %v", err)
+	}
 
 	if existedUser != nil {
-		return DuplicatedNameError
+		return ErrDuplicatedName
 	}
 
 	newUser := User{firstName, lastName, *parsedAddress}
@@ -56,5 +60,5 @@ func (m *Manager) GetUserByName(firstName, lastName string) (*User, error) {
 		}
 	}
 
-	return nil, NoUserFoundError
+	return nil, ErrNoUserFound
 }
