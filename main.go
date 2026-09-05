@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"go-http-server/internal/users"
 	"go-http-server/internal/util"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 )
 
 const PORT = 3000
@@ -26,9 +31,11 @@ type Server struct {
 
 func main() {
 	manager := users.NewManager()
-	s := Server{manager}
+	defer manager.Shutdown()
 
+	s := Server{manager}
 	mux := http.NewServeMux()
+	httpServer := &http.Server{Addr: fmt.Sprintf(":%d", PORT), Handler: mux}
 
 	mux.HandleFunc("/{$}", HandleRootEndpoint)
 	mux.HandleFunc("/goodbye", HandleGoodbyeEndpoint)
@@ -39,8 +46,40 @@ func main() {
 	mux.HandleFunc("POST /user", s.HandleUserEndpointPOST)
 	mux.HandleFunc("GET /user", s.HandleUserEndpointGET)
 
-	slog.Info("Listening to", "port", PORT)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), mux))
+	go func() {
+		slog.Info("Listening to", "port", PORT)
+		err := httpServer.ListenAndServe()
+
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Server error", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	wg.Go(func() {
+		defer wg.Done()
+
+		sc := make(chan os.Signal, 1)
+		signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT)
+
+		<-sc
+		slog.Info("server shutting down")
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+
+		err := httpServer.Shutdown(shutdownCtx)
+
+		if err != nil {
+			slog.Error("error shutting down server", "err", err)
+		}
+	})
+
+	wg.Wait()
+	slog.Info("server shutdown comple")
 }
 
 func HandleRootEndpoint(res http.ResponseWriter, req *http.Request) {
